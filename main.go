@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,26 +14,131 @@ import (
 
 var sourceDir string
 var destinationDir string
+var imageExtensions = map[string]bool{
+	".jpg":  true,
+	".jpeg": true,
+	".png":  true,
+	".gif":  true,
+	".bmp":  true,
+	".tiff": true,
+	".webp": true,
+	".heic": true,
+	".raw":  true,
+	".svg":  true,
+}
 
 func main() {
 
 	fmt.Print("\nLets move some photos!\n")
-	fmt.Print("    📂  🚛  🏞️    \n\n")
+	fmt.Print("📂 ∙ ∙ ∙ 🏞️ 🦖 ∙ ∙ ∙ 📷    \n\n")
 
 	sourceDir = getSourceDir()
 	destinationDir = getDestinationDir()
-	fmt.Printf("source: %s\n", sourceDir)
-	fmt.Printf("Destination: %s\n", destinationDir)
+	fmt.Printf("\nGathing photos from /%s/...\n", filepath.Base(sourceDir))
 
-	// collect all images from source directory
+	imageMap := createImageDateMap(sourceDir)
+	if len(imageMap) == 0 {
+		fmt.Println("No photos found in source directory, aborting")
+	}
+	fmt.Printf("Found photos, copying to /%s/...", filepath.Base(destinationDir))
+	imageCount, skippedCount, dirCount, newDirCount := writeImageMap(destinationDir, imageMap)
 
-	// create dictionary of [date-taken:[photo]]
+	if imageCount > 0 {
+		fmt.Println("\n\nDone! 🏞️ 🦖")
+		var skippedString string
+		if skippedCount > 0 {
+			skippedString = fmt.Sprintf(" (%d existing photos skipped)", skippedCount)
+		}
+		fmt.Printf("\nPhotos copied: %d%s", imageCount, skippedString)
 
-	// for each image, get date-taken and insert into dictionary
+		var newString string
+		if dirCount-newDirCount > 0 {
+			newString = fmt.Sprintf(" (%d directories already existed)", dirCount-newDirCount)
+		}
+		fmt.Printf("\nFolders created: %d%s\n\n", newDirCount, newString)
 
-	// for each key in dictionary, create folder in destination (if needed)
-	// then for each key in dictionary, iterate though value array and copy photos into folder
+	} else {
+		fmt.Printf("\n\nAll source images are already present in destination, nothing to move!\n\n")
+	}
+}
 
+func writeImageMap(destinationDir string, imageMap map[string][]string) (imageCount int, skippedCount, dirCount int, newDirCount int) {
+	keys := make([]string, 0, dirCount)
+	for k := range imageMap {
+		keys = append(keys, k)
+	}
+
+	for _, dateTaken := range keys {
+		if !directoryExists(filepath.Join(destinationDir, dateTaken)) {
+			err := os.Mkdir(filepath.Join(destinationDir, dateTaken), 0755)
+			if err != nil {
+				panic(err)
+			}
+			newDirCount += 1
+		}
+
+		for _, imageSourcePath := range imageMap[dateTaken] {
+			imageDestinationPath := filepath.Join(destinationDir, dateTaken, filepath.Base(imageSourcePath))
+
+			sourceStat, err := os.Stat(imageSourcePath)
+			if !sourceStat.Mode().IsRegular() || err != nil {
+				fmt.Printf("\nfailed to touch source file: %s", filepath.Base(imageSourcePath))
+				fmt.Println(err)
+				continue
+			}
+
+			source, err := os.Open(imageSourcePath)
+			if err != nil {
+				fmt.Printf("\nfailed to touch source file: %s", filepath.Base(imageSourcePath))
+				fmt.Println(err)
+				continue
+			}
+			defer source.Close()
+
+			destination, err := os.OpenFile(imageDestinationPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+			if errors.Is(err, os.ErrExist) {
+				skippedCount++
+				continue
+			} else if err != nil {
+				fmt.Printf("\nfailed to create destination for file: %s", filepath.Base(imageDestinationPath))
+				fmt.Println(err)
+				continue
+			}
+			defer destination.Close()
+			_, err = io.Copy(destination, source)
+
+			if err != nil {
+				fmt.Printf("\nFailed to copy file: %s", filepath.Base(imageSourcePath))
+			}
+			imageCount += 1
+		}
+	}
+
+	return imageCount, skippedCount, len(imageMap), newDirCount
+}
+
+func createImageDateMap(directoryPath string) map[string][]string {
+	files, err := os.ReadDir(directoryPath)
+	if err != nil {
+		panic(err)
+	}
+
+	imageMap := make(map[string][]string)
+	for _, file := range files {
+		imagePath := filepath.Join(directoryPath, file.Name())
+		imgExt := strings.ToLower(filepath.Ext(imagePath))
+
+		// if not image file, skip.
+		if !imageExtensions[imgExt] {
+			continue
+		}
+
+		dateTaken := getDateTaken(imagePath)
+
+		imageMap[dateTaken] = append(imageMap[dateTaken], imagePath)
+	}
+
+	return imageMap
 }
 
 func getDateTaken(filepath string) string {
@@ -46,9 +153,13 @@ func getDateTaken(filepath string) string {
 		panic(err)
 	}
 
-	dateTaken := ex.ExifIFD.DateTimeOriginal
+	dateTaken := ex.OriginalDate()
 
-	return fmt.Sprintf("%d-%d-%d", dateTaken.Year(), dateTaken.Month(), dateTaken.Day())
+	if !dateTaken.IsZero() {
+		return fmt.Sprintf("%d-%d-%d", dateTaken.Year(), dateTaken.Month(), dateTaken.Day())
+	} else {
+		return "unknown"
+	}
 }
 
 func getSourceDir() string {
