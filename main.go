@@ -4,29 +4,77 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
+
+	"github.com/evanoberholster/imagemeta"
 )
+
+var sourceDir string
+var destinationDir string
 
 func main() {
 
-	fmt.Print("\nLets move some photos!\n\n")
+	fmt.Print("\nLets move some photos!\n")
+	fmt.Print("    📂  🚛  🏞️    \n\n")
 
+	sourceDir = getSourceDir()
+	destinationDir = getDestinationDir()
+	fmt.Printf("source: %s\n", sourceDir)
+	fmt.Printf("Destination: %s\n", destinationDir)
+
+	// collect all images from source directory
+
+	// create dictionary of [date-taken:[photo]]
+
+	// for each image, get date-taken and insert into dictionary
+
+	// for each key in dictionary, create folder in destination (if needed)
+	// then for each key in dictionary, iterate though value array and copy photos into folder
+
+}
+
+func getDateTaken(filepath string) string {
+	f, err := os.Open(filepath)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	ex, err := imagemeta.Decode(f)
+	if err != nil {
+		panic(err)
+	}
+
+	dateTaken := ex.ExifIFD.DateTimeOriginal
+
+	return fmt.Sprintf("%d-%d-%d", dateTaken.Year(), dateTaken.Month(), dateTaken.Day())
+}
+
+func getSourceDir() string {
 	fmt.Println("Enter the source directory")
-	source := collectInput()
-	for !directoryExists(source) {
-		fmt.Println("Source direcectory not found or isn't accessible, try again")
-		source = collectInput()
+	sourceInput := collectInput()
+	sourcePath, sPathErr := filepath.Abs(sourceInput)
+	for !directoryExists(sourcePath) || sPathErr != nil {
+		fmt.Println("Direcectory not found or isn't accessible, try again")
+		sourceInput = collectInput()
+		sourcePath, sPathErr = filepath.Abs(sourceInput)
 	}
 
+	return sourcePath
+}
+
+func getDestinationDir() string {
 	fmt.Println("\nEnter the destination directory")
-	destination := collectInput()
-	for !directoryExists(destination) {
-		fmt.Println("Destination directory doesn't exist or isn't accessible, try again")
-		destination = collectInput()
+	destinationInput := collectInput()
+	destinationPath, dPathErr := filepath.Abs(destinationInput)
+	for !directoryExists(destinationPath) || dPathErr != nil {
+		fmt.Println("Directory doesn't exist or isn't accessible, try again")
+		destinationInput = collectInput()
+		destinationPath, dPathErr = filepath.Abs(destinationInput)
 	}
 
-	fmt.Printf("source: %s\n", source)
-	fmt.Printf("Destination: %s\n", destination)
+	return destinationPath
 }
 
 func directoryExists(path string) bool {
