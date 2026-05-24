@@ -21,3 +21,17 @@ photos/
   ├─ DSC003.jpg
   └─ DSC004.jpg
 ```
+
+## Build it
+
+```sh
+go build
+```
+
+## Run it
+
+```sh
+./photo-mover-go -source DCIM/ -destination ~/Pictures
+```
+
+I mainly just wanted to try making something with Go. So far I like it!
