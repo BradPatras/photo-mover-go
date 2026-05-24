@@ -92,7 +92,8 @@ func movePhotos(source string, destination string) {
 
 	imageMap := createImageDateMap(source)
 	if len(imageMap) == 0 {
-		fmt.Println("No photos found in source directory, aborting")
+		fmt.Println("\n[!] No photos found in source directory, aborting")
+		return
 	}
 	fmt.Printf("\nCopying photos to /%s/...\n", filepath.Base(destination))
 	fmt.Println(progressIndicator[StateCopying])
