@@ -7,4 +7,5 @@ require (
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/tinylib/msgp v1.6.3 // indirect
+	github.com/urfave/cli/v3 v3.9.0 // indirect
 )

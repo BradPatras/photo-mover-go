@@ -2,18 +2,19 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/evanoberholster/imagemeta"
+	"github.com/urfave/cli/v3"
 )
 
-var sourceDir string
-var destinationDir string
 var imageExtensions = map[string]bool{
 	".jpg":  true,
 	".jpeg": true,
@@ -27,38 +28,96 @@ var imageExtensions = map[string]bool{
 	".svg":  true,
 }
 
+type ProgressState int
+
+const (
+	StateReady ProgressState = iota
+	StateGathering
+	StateCopying
+	StateDone
+)
+
+var progressIndicator = map[ProgressState]string{
+	StateReady:     "📂 ∙ ∙ ∙ ∙ ∙ ∙ ∙ 🦖 📷",
+	StateGathering: "📂 ∙ ∙ ∙ ∙ ∙ ∙ 🦖 🏞️ 📷",
+	StateCopying:   "📂 ∙ ∙ ∙ 🏞️ 🦖 ∙ ∙ ∙ 📷",
+	StateDone:      "📂 🦖 ∙ ∙ ∙ ∙ ∙ ∙ ∙ 📷",
+}
+
 func main() {
-
 	fmt.Print("\nLets move some photos!\n")
-	fmt.Print("📂 ∙ ∙ ∙ 🏞️ 🦖 ∙ ∙ ∙ 📷    \n\n")
+	fmt.Println(progressIndicator[StateReady])
 
-	sourceDir = getSourceDir()
-	destinationDir = getDestinationDir()
-	fmt.Printf("\nGathing photos from /%s/...\n", filepath.Base(sourceDir))
+	if len(os.Args) == 1 {
+		sourceDir := getSourceDir("")
+		destinationDir := getDestinationDir("")
+		movePhotos(sourceDir, destinationDir)
+	} else {
+		cmd := &cli.Command{
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:    "source",
+					Aliases: []string{"s"},
+					Value:   ".",
+					Usage:   "directory where disorganized photos are located",
+				},
+				&cli.StringFlag{
+					Name:    "destination",
+					Aliases: []string{"d"},
+					Value:   ".",
+					Usage:   "directory where folders of sorted photos will be placed, photos will not overwrite existing files of the same name",
+				},
+			},
+			Name:  "move",
+			Usage: "Organize photos into folders by date taken with format yyyy-mm-dd",
+			Action: func(ctx context.Context, cmd *cli.Command) error {
+				movePhotos(
+					getSourceDir(cmd.String("source")),
+					getDestinationDir(cmd.String("destination")),
+				)
+				return nil
+			},
+		}
 
-	imageMap := createImageDateMap(sourceDir)
+		if err := cmd.Run(context.Background(), os.Args); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+}
+
+func movePhotos(source string, destination string) {
+	fmt.Printf("\nGathering photos from /%s/...\n", filepath.Base(source))
+	fmt.Println(progressIndicator[StateGathering])
+
+	imageMap := createImageDateMap(source)
 	if len(imageMap) == 0 {
 		fmt.Println("No photos found in source directory, aborting")
 	}
-	fmt.Printf("Found photos, copying to /%s/...", filepath.Base(destinationDir))
-	imageCount, skippedCount, dirCount, newDirCount := writeImageMap(destinationDir, imageMap)
+	fmt.Printf("\nCopying photos to /%s/...\n", filepath.Base(destination))
+	fmt.Println(progressIndicator[StateCopying])
+	imageCount, skippedCount, dirCount, newDirCount := writeImageMap(destination, imageMap)
 
+	printSummary(imageCount, skippedCount, dirCount, newDirCount)
+}
+
+func printSummary(imageCount int, skippedCount int, dirCount int, newDirCount int) {
 	if imageCount > 0 {
-		fmt.Println("\n\nDone! 🏞️ 🦖")
+		fmt.Println("\nDone!")
+		fmt.Println(progressIndicator[StateDone])
 		var skippedString string
 		if skippedCount > 0 {
 			skippedString = fmt.Sprintf(" (%d existing photos skipped)", skippedCount)
 		}
-		fmt.Printf("\nPhotos copied: %d%s", imageCount, skippedString)
+		fmt.Printf("Photos copied: %d%s", imageCount, skippedString)
 
 		var newString string
 		if dirCount-newDirCount > 0 {
 			newString = fmt.Sprintf(" (%d directories already existed)", dirCount-newDirCount)
 		}
-		fmt.Printf("\nFolders created: %d%s\n\n", newDirCount, newString)
-
+		fmt.Printf("\nFolders created: %d%s\n", newDirCount, newString)
 	} else {
-		fmt.Printf("\n\nAll source images are already present in destination, nothing to move!\n\n")
+		fmt.Printf("\n\nOpe, all source images are already present in destination, nothing to move!\n\n")
 	}
 }
 
@@ -162,9 +221,11 @@ func getDateTaken(filepath string) string {
 	}
 }
 
-func getSourceDir() string {
-	fmt.Println("Enter the source directory")
-	sourceInput := collectInput()
+func getSourceDir(sourceInput string) string {
+	if sourceInput == "" {
+		fmt.Println("\nEnter the source directory")
+		sourceInput = collectInput()
+	}
 	sourcePath, sPathErr := filepath.Abs(sourceInput)
 	for !directoryExists(sourcePath) || sPathErr != nil {
 		fmt.Println("Direcectory not found or isn't accessible, try again")
@@ -175,9 +236,11 @@ func getSourceDir() string {
 	return sourcePath
 }
 
-func getDestinationDir() string {
-	fmt.Println("\nEnter the destination directory")
-	destinationInput := collectInput()
+func getDestinationDir(destinationInput string) string {
+	if destinationInput == "" {
+		fmt.Println("\nEnter the destination directory")
+		destinationInput = collectInput()
+	}
 	destinationPath, dPathErr := filepath.Abs(destinationInput)
 	for !directoryExists(destinationPath) || dPathErr != nil {
 		fmt.Println("Directory doesn't exist or isn't accessible, try again")
