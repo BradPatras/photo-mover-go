@@ -35,7 +35,7 @@ go install
 # call it without arguments/flags to get the interactive experience
 photo-mover-go
 
-# or pass in the source/destination via flags
+# or use the `move` argument and pass in the source/destination via flags
 photo-mover-go move -source DCIM/ -destination ~/Pictures
 ```
 
