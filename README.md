@@ -25,13 +25,18 @@ photos/
 ## Build it
 
 ```sh
-go build
+# Assuming you have go installed already
+go install
 ```
 
 ## Run it
 
 ```sh
-./photo-mover-go move -source DCIM/ -destination ~/Pictures
+# call it without arguments/flags to get the interactive experience
+photo-mover-go
+
+# or pass in the source/destination via flags
+photo-mover-go move -source DCIM/ -destination ~/Pictures
 ```
 
 I mainly just wanted to try making something with Go. So far I like it!
