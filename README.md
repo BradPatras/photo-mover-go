@@ -31,7 +31,7 @@ go build
 ## Run it
 
 ```sh
-./photo-mover-go -source DCIM/ -destination ~/Pictures
+./photo-mover-go move -source DCIM/ -destination ~/Pictures
 ```
 
 I mainly just wanted to try making something with Go. So far I like it!
