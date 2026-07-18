@@ -30,7 +30,7 @@ photos/
 
 **Install it** (assuming you have go installed)
 ```sh
-go install github.com/BradPatras/photo-mover-go
+go install github.com/BradPatras/photo-mover-go@latest
 ```
 
 **Build it yourself** (assuming you have go installed)
