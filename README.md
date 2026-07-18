@@ -21,3 +21,22 @@ photos/
   ├─ DSC003.jpg
   └─ DSC004.jpg
 ```
+
+## Build it
+
+```sh
+# Assuming you have go installed already
+go install
+```
+
+## Run it
+
+```sh
+# call it without arguments/flags to get the interactive experience
+photo-mover-go
+
+# or use the `move` argument and pass in the source/destination via flags
+photo-mover-go move -source DCIM/ -destination ~/Pictures
+```
+
+I mainly just wanted to try making something with Go. So far I like it!
