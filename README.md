@@ -22,10 +22,21 @@ photos/
   └─ DSC004.jpg
 ```
 
-## Build it
+## Get it
 
+3 options:
+
+**Download it** from the Releases tab, unzip it and run it like any other program
+
+**Install it** (assuming you have go installed)
 ```sh
-# Assuming you have go installed already
+go install github.com/BradPatras/photo-mover-go
+```
+
+**Build it yourself** (assuming you have go installed)
+```sh
+# after cloning this repo
+cd photo-mover-go
 go install
 ```
 
