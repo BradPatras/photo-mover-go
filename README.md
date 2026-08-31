@@ -22,6 +22,8 @@ photos/
   └─ DSC004.jpg
 ```
 
+![screen capture](media/cap.gif)
+
 ## Get it
 
 3 options:
@@ -29,11 +31,13 @@ photos/
 **Download it** from the Releases tab, unzip it and run it like any other program
 
 **Install it** (assuming you have go installed)
+
 ```sh
 go install github.com/BradPatras/photo-mover-go
 ```
 
 **Build it yourself** (assuming you have go installed)
+
 ```sh
 # after cloning this repo
 cd photo-mover-go
