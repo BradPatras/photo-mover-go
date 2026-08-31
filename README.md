@@ -30,11 +30,15 @@ photos/
 
 **Download it** from the Releases tab, unzip it and run it like any other program
 
+-- or --
+
 **Install it** (assuming you have go installed)
 
 ```sh
-go install github.com/BradPatras/photo-mover-go
+go install github.com/BradPatras/photo-mover-go@latest
 ```
+
+-- or --
 
 **Build it yourself** (assuming you have go installed)
 
